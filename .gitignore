@@ -1,32 +1,12 @@
 # Python
-__pycache__/
-*.pyc
-.env
 .venv/
-venv/
-.env.* 
-*.ipynb_checkpoints
-
-# Data / outputs
-data/raw/
-data/interim/
-data/tmp/
-*.csv
-*.xlsx
-*.parquet
-*.pbix  # Power BI binary files - prefer PBIP or Git LFS (see below)
-*.pbix.json
-
-# Power BI Project (PBIP) cache
-**/.pbipfile
-**/.pbi/localCache
-
-# VS Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-
-# OS cruft
+__pycache__/
+Example/
+modules/
+_archive/
+data/*
+!data/.gitkeep
+logs/*
+!logs/.gitkeep
+.vscode/
 .DS_Store
-Thumbs.db
-
