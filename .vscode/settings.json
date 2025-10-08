@@ -1,17 +1,34 @@
 {
-  // --- your originals (kept) ---
-  "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
+  // 🧩 Shared Project Settings (Windows + macOS)
   "python.analysis.typeCheckingMode": "basic",
   "editor.formatOnSave": true,
+  // 🧹 Ignore cache + notebook junk files
   "files.eol": "\n",
   "files.exclude": {
     "**/__pycache__": true,
     "**/.ipynb_checkpoints": true
   },
-  // --- helpful adds for this project ---
-  // Use Command Prompt in VS Code’s terminal so batch + %ERRORLEVEL% behave exactly like our CMD runs
+  // 🐍 Python Virtual Environment
+  // Auto-detects correct path on macOS (.venv/bin/python)
+  // and gracefully works on Windows (.venv/Scripts/python.exe)
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  // 💻 Terminal Startup Folder
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  // 🖥️ macOS: Bash Profile
+  "terminal.integrated.profiles.osx": {
+    "bash": {
+      "path": "/bin/bash",
+      "args": [
+        "-l"
+      ],
+      "icon": "terminal-bash"
+    }
+  },
+  "terminal.integrated.defaultProfile.osx": "bash",
+  // 🪟 Windows: Command Prompt Profile
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
-  // Turn off built-in test discovery for now (we’re not using it yet; keeps the UI quiet)
+  // 🧪 Disable Testing UI (for now)
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": false
 }
