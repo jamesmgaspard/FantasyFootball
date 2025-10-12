@@ -1,34 +1,19 @@
 {
-  // 🧩 Shared Project Settings (Windows + macOS)
-  "python.analysis.typeCheckingMode": "basic",
-  "editor.formatOnSave": true,
-  // 🧹 Ignore cache + notebook junk files
-  "files.eol": "\n",
-  "files.exclude": {
-    "**/__pycache__": true,
-    "**/.ipynb_checkpoints": true
-  },
-  // 🐍 Python Virtual Environment
-  // Auto-detects correct path on macOS (.venv/bin/python)
-  // and gracefully works on Windows (.venv/Scripts/python.exe)
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.terminal.activateEnvironment": true,
-  // 💻 Terminal Startup Folder
-  "terminal.integrated.cwd": "${workspaceFolder}",
-  // 🖥️ macOS: Bash Profile
+  // Use login shells so startup files run (no --noprofile/--norc)
+  "terminal.integrated.defaultProfile.osx": "bash (login)",
   "terminal.integrated.profiles.osx": {
-    "bash": {
-      "path": "/bin/bash",
-      "args": [
-        "-l"
-      ],
-      "icon": "terminal-bash"
-    }
+    "bash (login)": { "path": "/bin/bash", "args": ["-l"] },
+    "zsh (login)":  { "path": "/bin/zsh",  "args": ["-l"] }
   },
-  "terminal.integrated.defaultProfile.osx": "bash",
-  // 🪟 Windows: Command Prompt Profile
-  "terminal.integrated.defaultProfile.windows": "Command Prompt",
-  // 🧪 Disable Testing UI (for now)
-  "python.testing.pytestEnabled": false,
-  "python.testing.unittestEnabled": false
+
+  // Start terminals in the workspace folder
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  // Silence the macOS bash deprecation warning (env var works even if profile hasn’t set it yet)
+  "terminal.integrated.env.osx": {
+    "BASH_SILENCE_DEPRECATION_WARNING": "1"
+  },
+
+  // Let the Python extension auto-activate your venv in new terminals
+  "python.terminal.activateEnvironment": true
 }
