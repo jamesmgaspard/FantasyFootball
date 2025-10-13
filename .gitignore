@@ -29,3 +29,9 @@ nul
 
 # Prevent accidental nested/backup folders
 /_FF_backup_*/
+
+# Python virtual envs (never commit)
+.venv/
+.venv311/
+**/.venv/
+**/.venv311/

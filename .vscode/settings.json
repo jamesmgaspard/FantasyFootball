@@ -15,5 +15,11 @@
   },
 
   // Let the Python extension auto-activate your venv in new terminals
-  "python.terminal.activateEnvironment": true
+  "python.terminal.activateEnvironment": true,
+"editor.cursorSurroundingLines": 15,
+"editor.cursorSurroundingLinesStyle": "all",
+"editor.scrollBeyondLastLine": true,
+"editor.smoothScrolling": true,
+"editor.wordWrap": "on",
+"editor.minimap.enabled": true,
 }
