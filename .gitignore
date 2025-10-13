@@ -26,3 +26,6 @@ powerbi/inputs/
 
 # Windows artifact
 nul
+
+# Prevent accidental nested/backup folders
+/_FF_backup_*/
