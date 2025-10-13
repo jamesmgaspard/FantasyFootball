@@ -20,3 +20,9 @@ powerbi/data/
 powerbi/docs/
 
 powerbi/FantasyFootball2025/
+
+# Local-only items
+powerbi/inputs/
+
+# Windows artifact
+nul
