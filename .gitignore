@@ -35,3 +35,16 @@ nul
 .venv311/
 **/.venv/
 **/.venv311/
+# Power BI binaries/exports
+*.pbix
+powerbi/_dist/
+
+# Data outputs & the inputs junction
+data/processed/
+powerbi/inputs/
+
+# Local virtual envs
+.venv/
+.venv311/
+**/.venv/
+**/.venv311/
