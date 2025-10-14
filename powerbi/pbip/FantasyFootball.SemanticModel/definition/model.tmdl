@@ -1,0 +1,19 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["top_by_position","top_dst_2021_2025"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table top_by_position
+ref table top_dst_2021_2025
+
+ref cultureInfo en-US
+

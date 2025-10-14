@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "FantasyFootball"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "1d655767-8056-48cb-b8c3-cc9f3e6d0d2c"
+  }
+}

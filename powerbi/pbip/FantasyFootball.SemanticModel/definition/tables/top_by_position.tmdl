@@ -1,0 +1,67 @@
+table top_by_position
+	lineageTag: 3184906e-ce60-4504-86b7-82f5f251201f
+
+	column player
+		dataType: string
+		lineageTag: ebb463af-3170-436c-b3f6-ef924f551b53
+		summarizeBy: none
+		sourceColumn: player
+
+		annotation SummarizationSetBy = Automatic
+
+	column team
+		dataType: string
+		lineageTag: e737a56c-c0d0-48f7-93fd-857965ba0d40
+		summarizeBy: none
+		sourceColumn: team
+
+		annotation SummarizationSetBy = Automatic
+
+	column position
+		dataType: string
+		lineageTag: 73d0704a-92ae-40fe-84c1-d566f6f8d58d
+		summarizeBy: none
+		sourceColumn: position
+
+		annotation SummarizationSetBy = Automatic
+
+	column season
+		dataType: int64
+		formatString: 0
+		lineageTag: 7ada0467-88bb-4aaf-b584-26d34a28f1a6
+		summarizeBy: sum
+		sourceColumn: season
+
+		annotation SummarizationSetBy = Automatic
+
+	column ppr_avg
+		dataType: double
+		lineageTag: 8029ae70-e42b-410e-b436-42704736a70c
+		summarizeBy: sum
+		sourceColumn: ppr_avg
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column rank_in_pos
+		dataType: int64
+		formatString: 0
+		lineageTag: 4a2c0144-e34c-4b70-af5b-f3e49f474612
+		summarizeBy: sum
+		sourceColumn: rank_in_pos
+
+		annotation SummarizationSetBy = Automatic
+
+	partition top_by_position = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Projects\FantasyFootball\powerbi\inputs\top_by_position.csv"),[Delimiter=",", Columns=6, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"player", type text}, {"team", type text}, {"position", type text}, {"season", Int64.Type}, {"ppr_avg", type number}, {"rank_in_pos", Int64.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
