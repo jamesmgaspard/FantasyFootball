@@ -14,3 +14,7 @@
 *.csv       text eol=lf
 *.tsv       text eol=lf
 *.json      text eol=lf
+* text=auto
+*.json text eol=lf
+*.tmdl text eol=lf
+*.pbism text eol=lf
