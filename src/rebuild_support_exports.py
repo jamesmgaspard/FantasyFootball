@@ -1,114 +1,146 @@
-import os, sys, warnings
+# src/rebuild_support_exports.py
+import os
 import pandas as pd
+from datetime import datetime
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA = os.path.join(BASE, "data", "processed")
-SRC  = os.path.join(BASE, "src")
 
-DEFAULT_SEASON = 2025  # adjust if needed
+# ---- Controls (can also be overridden via env vars) --------------------------
+CURRENT_SEASON = int(os.getenv("FF_CURRENT_SEASON", datetime.now().year))
+MAX_WEEKS_CURRENT = int(os.getenv("FF_MAX_WEEKS_CURRENT", "6"))  # cap to first N weeks
+ALLOWED_POS = set(x.strip().upper() for x in os.getenv("FF_ALLOWED_POS", "QB,RB,WR,TE,K").split(","))
+# -----------------------------------------------------------------------------
 
-src_file = os.path.join(DATA, "espn_master.csv")
-if not os.path.exists(src_file):
-    print(f"[ERROR] Missing {src_file}. Aborting.")
-    sys.exit(1)
+CANDIDATES = [
+    os.path.join(DATA, "players_weekly.csv"),
+    os.path.join(DATA, "player_weekly.csv"),
+    os.path.join(DATA, "espn_player_weekly.csv"),
+    os.path.join(DATA, "weekly_stats.csv"),
+]
 
-print(f"[INFO] Loading: {src_file}")
-df = pd.read_csv(src_file)
+OUT_TOP_BY_POS = os.path.join(DATA, "top_by_position.csv")
+OUT_DST = os.path.join(DATA, "top_dst_2021_2025.csv")
 
-# Expected columns (from your log):
-# ['team_id','team_name','wins','losses','ties','games_played','win_pct',
-#  'table','week','home_team','away_team','home_score','away_score','total_points']
+def first_existing(paths):
+    for p in paths:
+        if os.path.exists(p) and os.path.getsize(p) > 0:
+            return p
+    return None
 
-# Normalize to columns our exports will use
-if "team_name" in df.columns and "team" not in df.columns:
-    df["team"] = df["team_name"]
+def coerce_numeric(df, cols):
+    for c in cols:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
+    return df
 
-if "week" not in df.columns:
-    df["week"] = pd.NA
+def compute_ppr(df):
+    # Use an existing PPR column if present
+    for col in ["ppr", "ppr_points", "fantasy_points_ppr"]:
+        if col in df.columns:
+            return df.rename(columns={col: "ppr_points"})
+    # Compute PPR from common columns
+    df = coerce_numeric(df, [
+        "receptions","receiving_yards","receiving_tds",
+        "rushing_yards","rushing_tds",
+        "passing_yards","passing_tds","interceptions",
+        "fumbles_lost","fumbles"
+    ])
+    df["ppr_points"] = (
+        df.get("receptions",0)*1
+        + df.get("receiving_yards",0)/10 + df.get("receiving_tds",0)*6
+        + df.get("rushing_yards",0)/10  + df.get("rushing_tds",0)*6
+        + df.get("passing_yards",0)/25  + df.get("passing_tds",0)*4
+        - df.get("interceptions",0)*2 - df.get("fumbles_lost", df.get("fumbles",0))*2
+    )
+    return df
 
-if "season" not in df.columns:
-    df["season"] = DEFAULT_SEASON
-    print(f"[INFO] Added default 'season'={DEFAULT_SEASON}")
+def build_top_by_position(player_csv):
+    df = pd.read_csv(player_csv)
 
-# -------------------------------
-# Export 1: top_dst_2021_2025.csv
-# -------------------------------
-# We don't have turnovers/sacks etc., so use a lightweight proxy:
-# fewer points allowed across games -> better "defense score".
-# We'll compute points_allowed per team-week, then season aggregate.
+    # Normalize column names
+    rename = {
+        "player_display_name":"player",
+        "player_name":"player",
+        "full_name":"player",
+        "recent_team":"team",
+        "team_abbr":"team",
+        "team":"team",
+        "pos":"position",
+        "season_year":"season",
+        "week_number":"week",
+    }
+    for k,v in rename.items():
+        if k in df.columns and v not in df.columns:
+            df = df.rename(columns={k:v})
 
-# Build team-week points allowed from perspective of each team present in rows
-def team_points_allowed(row):
-    # If row lists both teams & scores, infer PA for each side
-    # Fallback to total_points if we can't infer (rare in this file)
-    ht, at = row.get("home_team"), row.get("away_team")
-    hs, as_ = row.get("home_score"), row.get("away_score")
-    if pd.notna(ht) and pd.notna(at) and pd.notna(hs) and pd.notna(as_):
-        # Represent two rows: one for home (PA = away_score) and one for away (PA = home_score)
-        return pd.DataFrame({
-            "team": [ht, at],
-            "season": [row["season"], row["season"]],
-            "week": [row["week"], row["week"]],
-            "points_allowed": [as_, hs],
-        })
-    # Fallback single-row interpretation
-    return pd.DataFrame({
-        "team": [row.get("team", "Unknown")],
-        "season": [row["season"]],
-        "week": [row["week"]],
-        "points_allowed": [row.get("total_points", 0)]
-    })
+    # Required columns
+    for col in ["player","team","position"]:
+        if col not in df.columns:
+            raise SystemExit(f"[ERROR] Missing '{col}' in {player_csv}. Columns: {list(df.columns)}")
 
-rows = []
-for _, r in df.iterrows():
-    rows.append(team_points_allowed(r))
-dst_weekly = pd.concat(rows, ignore_index=True)
+    if "season" not in df.columns:
+        df["season"] = datetime.now().year
+    if "week" not in df.columns:
+        df["week"] = 0
 
-# Aggregate by team+season
-dst_agg = dst_weekly.groupby(["team","season"], dropna=False, as_index=False).agg(
-    games=("week","count"),
-    points_allowed_total=("points_allowed","sum"),
-    points_allowed_avg=("points_allowed","mean"),
-)
+    df = compute_ppr(df)
+    df = coerce_numeric(df, ["ppr_points","season","week"])
 
-# Create a "dst_score" where lower PA => higher score
-# Invert avg PA with a simple transform (safe if avg is zero)
-dst_agg["dst_score"] = dst_agg["points_allowed_avg"].max() - dst_agg["points_allowed_avg"]
+    # Keep only fantasy-relevant positions (e.g., QB/RB/WR/TE/K)
+    if "position" in df.columns:
+        df["position"] = df["position"].astype(str).str.upper()
+        before = len(df)
+        df = df[df["position"].isin(ALLOWED_POS)]
+        after = len(df)
+        print(f"[INFO] Filtered positions to {sorted(ALLOWED_POS)} ({before}->{after} rows)")
 
-# Keep columns that look like the original downstream expectations
-# Use dst_score as a stand-in for ppr metrics so visuals sort sensibly if referenced
-dst_export = dst_agg.rename(columns={
-    "dst_score": "ppr_avg"   # placeholder metric
-})
-dst_export["position"] = "D/ST"
+    # Warn if the configured current season isn’t present
+    present_seasons = sorted(set(pd.to_numeric(df["season"], errors="coerce").dropna().astype(int)))
+    if CURRENT_SEASON not in present_seasons:
+        print(f"[WARN] No rows found for season {CURRENT_SEASON} in weekly data. Present: {present_seasons}")
 
-dst_keep = ["team","season","position","ppr_avg","points_allowed_avg","games"]
-dst_keep = [c for c in dst_keep if c in dst_export.columns]
-dst_out = os.path.join(DATA, "top_dst_2021_2025.csv")
+    # Cap the current season to first N weeks (e.g., 2025 weeks 1..6)
+    if MAX_WEEKS_CURRENT > 0:
+        df = df[~((df["season"] == CURRENT_SEASON) & (df["week"] > MAX_WEEKS_CURRENT))]
 
-# Sort keys and matching ascending flags
-sort_by = [c for c in ["season","ppr_avg","points_allowed_avg"] if c in dst_keep]
-asc = [True] + [False]*(len(sort_by)-1) if sort_by else []
-dst_export[dst_keep].sort_values(by=sort_by, ascending=asc, ignore_index=True).to_csv(dst_out, index=False)
-print(f"[OK] Wrote: {dst_out} (rows={len(dst_export)})")
+    # Aggregate to player-season level
+    grp = (df.groupby(["player","team","position","season"], as_index=False)
+             .agg(ppr_avg=("ppr_points","mean"),
+                  ppr_points=("ppr_points","sum"),
+                  weeks=("week","nunique")))
 
-# --------------------------------
-# Export 2: top_by_position.csv
-# --------------------------------
-# We don't have player/position. Emit a minimal, valid table so Power BI links succeed.
-# We'll synthesize a "position" of "TEAM" and carry team-season with a neutral score.
+    # Rank by position within season
+    grp["rank_in_pos"] = grp.groupby(["season","position"])["ppr_avg"]\
+                            .rank(ascending=False, method="dense").astype(int)
 
-team_top = dst_agg.copy()
-team_top["position"] = "TEAM"
-team_top["player"] = team_top["team"]  # placeholder to satisfy visuals that expect a 'player'-like label
-team_top["ppr_avg"] = team_top["points_allowed_avg"] * 0  # neutral zero
-team_top["rank_in_pos"] = team_top.groupby(["position","season"])["points_allowed_avg"].rank(ascending=True, method="first")
+    out_cols = ["player","team","position","season","ppr_avg","rank_in_pos"]
+    grp[out_cols].sort_values(["season","position","ppr_avg"],
+                              ascending=[True, True, False])\
+                 .to_csv(OUT_TOP_BY_POS, index=False)
+    print(f"[OK] Wrote {OUT_TOP_BY_POS} with {len(grp)} rows "
+          f"(capped {CURRENT_SEASON} to week ≤ {MAX_WEEKS_CURRENT})")
 
-top_keep = [c for c in ["player","team","position","season","ppr_avg","rank_in_pos"] if c in team_top.columns]
-top_out = os.path.join(DATA, "top_by_position.csv")
-sort_by = [c for c in ["position","season","rank_in_pos"] if c in top_keep]
-asc = [True, True, True][:len(sort_by)]
-team_top[top_keep].sort_values(by=sort_by, ascending=asc, ignore_index=True).to_csv(top_out, index=False)
-print(f"[OK] Wrote: {top_out} (rows={len(team_top)})")
+def build_dst_stub():
+    # Leave as-is; just ensure file exists
+    if os.path.exists(OUT_DST) and os.path.getsize(OUT_DST) > 0:
+        print(f"[SKIP] D/ST exists: {OUT_DST}")
+        return
+    pd.DataFrame(columns=["team","position","season","ppr_avg","points_allowed"])\
+      .to_csv(OUT_DST, index=False)
+    print(f"[OK] Wrote placeholder {OUT_DST}")
 
-print("[DONE] Exports complete.")
+def main():
+    src = first_existing(CANDIDATES)
+    if not src:
+        raise SystemExit(
+            "[ERROR] No player-level weekly CSV found in data/processed.\n"
+            "Expected one of: players_weekly.csv, player_weekly.csv, espn_player_weekly.csv, weekly_stats.csv.\n"
+            "Run: python src/fetch_nflverse.py, then rerun."
+        )
+    print(f"[INFO] Using player source: {src}")
+    build_top_by_position(src)
+    build_dst_stub()
+
+if __name__ == "__main__":
+    main()
