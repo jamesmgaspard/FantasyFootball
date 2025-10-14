@@ -13,11 +13,13 @@ ALLOWED_POS = set(x.strip().upper() for x in os.getenv("FF_ALLOWED_POS", "QB,RB,
 # -----------------------------------------------------------------------------
 
 CANDIDATES = [
-    os.path.join(DATA, "players_weekly.csv"),
-    os.path.join(DATA, "player_weekly.csv"),
+    os.path.join(DATA, "players_weekly.csv"),        # nflverse (preferred)
+    os.path.join(DATA, "players_weekly_espn.csv"),   # ESPN fallback (new)
+    os.path.join(DATA, "player_weekly.csv"),         # legacy names (if present)
     os.path.join(DATA, "espn_player_weekly.csv"),
     os.path.join(DATA, "weekly_stats.csv"),
 ]
+
 
 OUT_TOP_BY_POS = os.path.join(DATA, "top_by_position.csv")
 OUT_DST = os.path.join(DATA, "top_dst_2021_2025.csv")
