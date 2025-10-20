@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "FantasyFootball_reset"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "92477aba-4672-4e70-a870-2436f1232c79"
+  }
+}

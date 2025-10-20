@@ -48,3 +48,9 @@ powerbi/inputs/
 .venv311/
 **/.venv/
 **/.venv311/
+
+.venv/
+venv/
+Lib/
+Scripts/
+__pycache__/
